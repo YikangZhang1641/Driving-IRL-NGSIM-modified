@@ -34,7 +34,7 @@ class AbstractEnv(gym.Env):
     ACTIONS_INDEXES = {v: k for k, v in ACTIONS.items()}
 
     # The frequency at which the system dynamics are simulated [Hz]
-    SIMULATION_FREQUENCY = 10
+    SIMULATION_FREQUENCY = 20
 
     # The maximum distance of any vehicle present in the observation [m]
     PERCEPTION_DISTANCE = 6.0 * MDPVehicle.SPEED_MAX
@@ -200,6 +200,16 @@ class AbstractEnv(gym.Env):
 
         self.enable_auto_render = False
 
+    def get_keyboard(self):
+        if self.viewer is None:
+            self.viewer = EnvViewer(self, offscreen=self.offscreen)
+        return self.viewer.get_key()
+
+    def get_wheel(self):
+        if self.viewer is None:
+            self.viewer = EnvViewer(self, offscreen=self.offscreen)
+        return self.viewer.get_wheel()
+
     def render(self, mode='human'):
         """
         Render the environment.
@@ -224,9 +234,9 @@ class AbstractEnv(gym.Env):
             #    self.viewer.handle_events()
             #self.viewer.handle_events()
             return image
-        #elif mode == 'human':
-        #    if not self.viewer.offscreen:
-            #   self.viewer.handle_events()
+        elif mode == 'human':
+           if not self.viewer.offscreen:
+              self.viewer.handle_events()
                 
 
         self.should_update_rendering = False

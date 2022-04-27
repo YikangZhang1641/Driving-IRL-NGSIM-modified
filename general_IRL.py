@@ -3,6 +3,8 @@ from NGSIM_env.envs.ngsim_env import NGSIMEnv
 from NGSIM_env.utils import *
 import numpy as np
 import csv
+import pygame
+pygame.init()
 
 # parameters
 n_iters = 200
@@ -10,8 +12,8 @@ lr = 0.05
 lam = 0.01
 feature_num = 8
 period = 0
-render_env = False
-vehicles = [2617, 148, 809, 1904, 241, 2204, 619, 2390, 1267, 1269, 1370, 80, 1908, 820, 2293, 2218, 1014, 1221, 2489, 2284]
+render_env = True
+vehicles = [148, 809, 1904, 241, 2204, 2390, 1267, 1269, 1370, 80, 1908, 820, 2293, 2218, 1014, 1221, 2489, 619, 2617, 2284]
 
 # create training log
 with open('general_training_log.csv', 'w') as csvfile:       
@@ -21,6 +23,8 @@ with open('general_training_log.csv', 'w') as csvfile:
 # Cache
 buffer = []
 human_traj_features = []
+
+USE_WHEEL = True
 
 # Simulate trajectory
 for i in vehicles:
@@ -33,7 +37,7 @@ for i in vehicles:
 
     # Data collection
     length = env.vehicle.ngsim_traj.shape[0]
-    timesteps = np.linspace(10, length-60, num=50, dtype=np.int16)
+    timesteps = np.linspace(10, length-110, num=100, dtype=np.int16)
     train_steps = np.random.choice(timesteps, size=10, replace=False)
 
     # run until the road ends
@@ -51,26 +55,113 @@ for i in vehicles:
         buffer_scene = []
         print('Timestep: {}'.format(start))
 
-        for lateral in lateral_offsets:
-            for target_speed in target_speeds:
+        # for lateral in lateral_offsets:
+        #     for target_speed in target_speeds:
                 # sample a trajectory
-                action = (lateral, target_speed, 5)
-                obs, features, terminated, info = env.step(action)
 
-                # render env
-                if render_env:
-                    env.render()
+        ###########################################
+        ########################################
+        last_key = None
+        for _trial in range(40):
+            env.reset(reset_time=start)
+            env.run_step = 0
+            features = []
 
-                # get the features
-                traj_features = features[:-1]
-                human_likeness = features[-1]
-                
-                # add scene trajectories to buffer
-                buffer_scene.append((lateral, target_speed, traj_features, human_likeness))
+            for t in range(int(10 * env.SIMULATION_FREQUENCY) - 1):
+                if not USE_WHEEL:
+                    key = env.get_keyboard()
+                    if last_key != key:
+                        lateral_offsets, target_speeds = env.sampling_space()
 
-                # set back to previous step
-                env.reset(reset_time=start)
-        
+                    lateral, target_speed = lateral_offsets[1], target_speeds[3]
+                    if key == 0:
+                        lateral, target_speed = lateral_offsets[1], target_speeds[0]
+                    elif key == 2:
+                        lateral, target_speed = lateral_offsets[1], target_speeds[3]
+                    elif key == 5:
+                        lateral, target_speed = lateral_offsets[1], target_speeds[6]
+                    elif key == 8:
+                        lateral, target_speed = lateral_offsets[1], target_speeds[9]
+
+                    elif key == 1:
+                        lateral, target_speed = lateral_offsets[0], target_speeds[3]
+                    elif key == 4:
+                        lateral, target_speed = lateral_offsets[0], target_speeds[6]
+                    elif key == 7:
+                        lateral, target_speed = lateral_offsets[0], target_speeds[9]
+
+                    elif key == 3:
+                        lateral, target_speed = lateral_offsets[2], target_speeds[3]
+                    elif key == 6:
+                        lateral, target_speed = lateral_offsets[2], target_speeds[6]
+                    elif key == 9:
+                        lateral, target_speed = lateral_offsets[2], target_speeds[9]
+
+                    action = (lateral, target_speed, 10)
+                    # obs, features, terminated, info = env.step(action)
+
+                    if last_key != key:
+                        env.vehicle.trajectory_planner(action[0], action[1], action[2])  # action = (lateral, target_speed, T)
+                        print(env.vehicle.planned_trajectory)
+                        env.run_step = 1
+                        last_key = key
+
+                    env.road.act(env.run_step)
+
+                else:
+                    steer, acc = env.get_wheel()
+                    env.road.act(env.run_step, steer, acc)
+                    action = (steer, acc)
+
+                env.road.step(1 / env.SIMULATION_FREQUENCY)
+                env.time += 1
+                env.run_step += 1
+                feat = env._features()
+                features.append(feat)
+
+                env._automatic_rendering()
+
+                # Stop at terminal states
+                if env.done or env._is_terminal():
+                    break
+
+            env.enable_auto_render = False
+
+            human_likeness = feat[-1]
+            interaction = np.max([feature[-2] for feature in features])
+            features = np.sum(features, axis=0)
+            features[-1] = human_likeness
+
+
+            obs = env.observation.observe()
+            terminal = env._is_terminal()
+
+            info = {
+                "velocity": env.vehicle.velocity,
+                "crashed": env.vehicle.crashed,
+                'offroad': not env.vehicle.on_road,
+                "action": action,
+                "time": env.time
+            }
+
+            # render env
+            if render_env:
+                env.render()
+
+            # get the features
+            traj_features = features[:-1]
+            human_likeness = features[-1]
+
+            # add scene trajectories to buffer 之后需要加入录制轨迹拟合
+            # buffer_scene.append((lateral, target_speed, traj_features, human_likeness))
+            buffer_scene.append((0, 0, traj_features, human_likeness))
+
+            # set back to previous step
+            env.reset(reset_time=start)
+
+        #######################################
+        ##########################################
+
         # calculate human trajectory feature
         env.reset(reset_time=start, human=True)
         obs, features, terminated, info = env.step()

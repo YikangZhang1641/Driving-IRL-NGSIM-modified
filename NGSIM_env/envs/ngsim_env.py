@@ -201,7 +201,7 @@ class NGSIMEnv(AbstractEnv):
         for i in range(int(T * self.SIMULATION_FREQUENCY)-1):
             if i == 0:
                 if action is not None: # sampled goal
-                    self.vehicle.trajectory_planner(action[0], action[1], action[2])
+                    self.vehicle.trajectory_planner(action[0], action[1], action[2]) # action = (lateral, target_speed, 5)
                 else: # human goal
                     self.vehicle.trajectory_planner(self.vehicle.ngsim_traj[self.vehicle.sim_steps+T*10][1], 
                                                    (self.vehicle.ngsim_traj[self.vehicle.sim_steps+T*10][0]-self.vehicle.ngsim_traj[self.vehicle.sim_steps+T*10-1][0])/0.1, T)

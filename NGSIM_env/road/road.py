@@ -261,7 +261,7 @@ class Road(Loggable):
 
         return vehicles
 
-    def act(self, step):
+    def act(self, step, steer=None, acc=None):
         """
         Decide the actions of each entity on the road.
         """
@@ -269,7 +269,7 @@ class Road(Loggable):
             if isinstance(vehicle, NGSIMVehicle):
                 vehicle.act()
             else:
-                vehicle.act(step)
+                vehicle.act(step, steer, acc)
 
     def step(self, dt):
         """

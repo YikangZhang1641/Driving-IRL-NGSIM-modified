@@ -4,6 +4,7 @@ from NGSIM_env.utils import *
 import numpy as np
 import csv
 from NGSIM_env.utils import *
+from gym.utils.play import *
 
 # parameters
 n_iters = 200
@@ -12,7 +13,7 @@ lam = 0.01
 feature_num = 8
 vehicle_id = 317
 period = 0
-render_env = False
+render_env = True
 
 # create environment
 print('Target Vehicle: {}'.format(vehicle_id))

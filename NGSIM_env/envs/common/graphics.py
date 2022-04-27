@@ -19,10 +19,14 @@ class EnvViewer(object):
     def __init__(self, env, offscreen=False):
         self.env = env
         self.offscreen = offscreen
+        self.key = 0
 
         pygame.init()
         pygame.display.set_caption("NGSIM-env")
         panel_size = (self.env.config["screen_width"], self.env.config["screen_height"])
+
+        pygame.joystick.init()
+        self.joystick = pygame.joystick.Joystick(0)
 
         # A display is not mandatory to draw things. Ignoring the display.set_mode()
         # instruction allows the drawing to be done on surfaces without
@@ -83,6 +87,41 @@ class EnvViewer(object):
             if self.env.vehicle:
                 VehicleGraphics.handle_event(self.env.vehicle, event)
 
+
+    def get_key(self):
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_KP0:
+                    self.key = 0
+                elif event.key == pygame.K_KP1:
+                    self.key = 1
+                elif event.key == pygame.K_KP2:
+                    self.key = 2
+                elif event.key == pygame.K_KP3:
+                    self.key = 3
+                elif event.key == pygame.K_KP4:
+                    self.key = 4
+                elif event.key == pygame.K_KP5:
+                    self.key = 5
+                elif event.key == pygame.K_KP6:
+                    self.key = 6
+                elif event.key == pygame.K_KP7:
+                    self.key = 7
+                elif event.key == pygame.K_KP8:
+                    self.key = 8
+                elif event.key == pygame.K_KP9:
+                    self.key = 9
+        return self.key
+
+    def get_wheel(self):
+        steer = self.joystick.get_axis(0)
+        pedal = (1 - self.joystick.get_axis(2)) / 2
+        brake = (self.joystick.get_axis(3) - 1) / 2
+        acc = brake
+        if abs(brake) < 1e-3:
+            acc = pedal
+        return steer * 0.5, acc * 20
+
     def display(self):
         """
         Display the road and vehicles on a pygame window.
@@ -125,7 +164,7 @@ class EnvViewer(object):
         :return: the rendered image as a rbg array
         """
         data = pygame.surfarray.array3d(self.sim_surface)
-        return np.moveaxis(data, 0, 1)
+        return data #np.moveaxis(data, 0, 1)
 
     def window_position(self):
         """
@@ -141,3 +180,31 @@ class EnvViewer(object):
         Close the pygame window.
         """
         pygame.quit()
+
+    def keyboard(self):
+        # action = 0
+        key_pressed = pygame.key.get_pressed()
+        return key_pressed
+        # if key_pressed[pygame.K_KP0]:
+        #     action = 0
+        # elif key_pressed[pygame.K_KP2]:
+        #     action = 2
+        # elif key_pressed[pygame.K_KP5]:
+        #     action = 5
+        # elif key_pressed[pygame.K_KP8]:
+        #     action = 8
+        #
+        # elif key_pressed[pygame.K_KP1]:
+        #     action = 1
+        # elif key_pressed[pygame.K_KP4]:
+        #     action = 4
+        # elif key_pressed[pygame.K_KP7]:
+        #     action = 7
+        #
+        # elif key_pressed[pygame.K_KP3]:
+        #     action = 3
+        # elif key_pressed[pygame.K_KP6]:
+        #     action = 6
+        # elif key_pressed[pygame.K_KP9]:
+        #     action = 9
+        # return action

@@ -130,7 +130,7 @@ class NGSIMVehicle(IDMVehicle):
             desired_gap = 50
   
         if gap >= desired_gap and not self.overtaken:
-            self.position = self.ngsim_traj[self.sim_steps][:2]
+            self.position = self.ngsim_traj[self.sim_steps][:2] #log 中真实轨迹
             lateral_velocity = (self.ngsim_traj[self.sim_steps+1][1] - self.position[1])/0.1
             heading = np.arcsin(np.clip(lateral_velocity/utils.not_zero(self.velocity), -1, 1))
             self.heading = np.clip(heading, -np.pi/4, np.pi/4)     
@@ -275,7 +275,11 @@ class HumanLikeVehicle(IDMVehicle):
         #path_y = self.position[1] + self.velocity * np.sin(self.heading) * time/10
         #self.planned_trajectory = np.array([[x, y] for x, y in zip(path_x, path_y)])
 
-    def act(self, step):
+    def act(self, step, steer=None, acc=None):
+        if steer and acc:
+            self.action = {'steering':steer, 'acceleration':acc}
+            return
+
         if self.planned_trajectory is not None:
             self.action = {'steering': self.steering_control(self.planned_trajectory, step),
                            'acceleration': self.velocity_control(self.planned_trajectory, step)}
